@@ -1,6 +1,7 @@
 // Kisi dusare file me router define karna hai to express use hota hai
 const { Router } = require("express");
 const authController = require("../controllers/auth.controller.js");
+const authUser = require("../middlewares/auth.middleware.js");
 
 const authRouter = Router();
 
@@ -27,5 +28,13 @@ authRouter.post("/login", authController.loginUserController);
  */
 
 authRouter.get("/logout", authController.logoutUserController);
+
+/**
+ * @route GET /api/auth/get-me
+ * @description get the current logged in user details
+ * @access private
+ */
+
+authRouter.get("/get-me", authUser, authController.getMeController);
 
 module.exports = authRouter;
