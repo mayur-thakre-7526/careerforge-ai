@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import "../auth.form.scss";
+import { useNavigate, Link } from "react-router";
 
 const Login = () => {
   const handleSubmit = async (e) => {
@@ -31,7 +32,9 @@ const Login = () => {
           </div>
           <button className="button primary-button">Login</button>
         </form>
-        <p>Don't have an account? Register </p>
+        <p>
+          Don't have an account? <Link to={"/register"}>Register</Link>{" "}
+        </p>
       </div>
     </main>
   );
