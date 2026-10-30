@@ -92,13 +92,6 @@ const interviewReportSchema = z.object({
     ),
 });
 
-async function invokeGeminiAi() {
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: "Hello gemini ! Explain what is Interview ?",
-  });
 
-  console.log(response.text);
-}
 
 module.exports = invokeGeminiAi;
