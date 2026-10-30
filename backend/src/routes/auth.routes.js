@@ -1,7 +1,7 @@
 // Kisi dusare file me router define karna hai to express use hota hai
 const { Router } = require("express");
 const authController = require("../controllers/auth.controller.js");
-const authUser = require("../middlewares/auth.middleware.js");
+const {authUser} = require("../middlewares/auth.middleware.js")
 
 const authRouter = Router();
 
