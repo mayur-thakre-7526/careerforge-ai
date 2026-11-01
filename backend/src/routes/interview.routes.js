@@ -1,5 +1,5 @@
 const express = require("express");
-const authMiddleware = require("../middlewares/auth.middleware.js");
+const authUser = require("../middlewares/auth.middleware.js");
 const interviewController = require("../controllers/interview.controller.js");
 const upload = require("../middlewares/file.middleware.js");
 
@@ -13,7 +13,7 @@ const interviewRouter = express.Router();
 
 interviewRouter.post(
   "/",
-  authMiddleware.authUser,
+  authUser,
   upload.single("resume"),
   interviewController.generateInterViewReportController,
 );
@@ -25,7 +25,7 @@ interviewRouter.post(
  */
 interviewRouter.get(
   "/report/:interviewId",
-  authMiddleware.authUser,
+  authUser,
   interviewController.getInterviewReportByIdController,
 );
 
@@ -36,7 +36,7 @@ interviewRouter.get(
  */
 interviewRouter.get(
   "/",
-  authMiddleware.authUser,
+  authUser,
   interviewController.getAllInterviewReportsController,
 );
 
@@ -47,7 +47,7 @@ interviewRouter.get(
  */
 interviewRouter.post(
   "/resume/pdf/:interviewReportId",
-  authMiddleware.authUser,
+  authUser,
   interviewController.generateResumePdfController,
 );
 

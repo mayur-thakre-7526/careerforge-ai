@@ -10,6 +10,8 @@ const ai = new GoogleGenAI({
 const interviewReportSchema = z.object({
   matchScore: z
     .number()
+    .min(0)
+    .max(100)
     .describe(
       "A score between 0 and 100 indicating how well the candidate's profile matches the job describe",
     ),
@@ -98,10 +100,50 @@ async function generateInterviewReport({
   selfDescription,
   jobDescription,
 }) {
-  const prompt = `Generate an interview report for a candidate with the following details:
-                        Resume: ${resume}
-                        Self Description: ${selfDescription}
-                        Job Description: ${jobDescription}
+  const prompt = `
+You are an expert technical interviewer and career coach.
+
+Analyze the candidate's resume, self-description, and target job description.
+
+Return a complete interview preparation report.
+
+STRICT REQUIREMENTS:
+
+1. Return JSON matching the provided response schema exactly.
+2. Do not use alternative field names.
+3. Do not return questions as plain strings.
+4. Every technicalQuestions item MUST be an object containing:
+   - question: string
+   - intention: string
+   - answer: string
+5. Every behavioralQuestions item MUST be an object containing:
+   - question: string
+   - intention: string
+   - answer: string
+6. Every skillGaps item MUST be an object containing:
+   - skill: string
+   - severity: "low", "medium", or "high"
+7. Every preparationPlan item MUST be an object containing:
+   - day: number
+   - focus: string
+   - tasks: array of strings
+8. Generate at least 5 technical questions.
+9. Generate at least 5 behavioral questions.
+10. Generate relevant skill gaps.
+11. Generate a practical 7-day preparation plan.
+12. matchScore must be a number between 0 and 100.
+13. title must contain the job title extracted from the job description.
+14. Do not invent candidate experience or qualifications.
+15. Keep all answers relevant to the actual job description.
+
+CANDIDATE RESUME:
+${resume || "No resume provided"}
+
+CANDIDATE SELF-DESCRIPTION:
+${selfDescription || "No self-description provided"}
+
+TARGET JOB DESCRIPTION:
+${jobDescription}
 `;
 
   const response = await ai.models.generateContent({
@@ -113,7 +155,31 @@ async function generateInterviewReport({
     },
   });
 
-  return JSON.parse(response.text);
+  if (!response.text) {
+    throw new Error("Gemini returned an empty response.");
+  }
+
+  let rawResponse;
+
+  try {
+    rawResponse = JSON.parse(response.text);
+  } catch (error) {
+    console.error("Invalid JSON from Gemini:", response.text);
+    throw new Error("Gemini returned invalid JSON.");
+  }
+
+  const validationResult = interviewReportSchema.safeParse(rawResponse);
+
+  if (!validationResult.success) {
+    console.error(
+      "Gemini response validation failed:",
+      JSON.stringify(validationResult.error.issues, null, 2),
+    );
+
+    throw new Error("Generated interview report has an invalid structure.");
+  }
+
+  return validationResult.data;
 }
 
 async function generatePdfFromHtml(htmlContent) {

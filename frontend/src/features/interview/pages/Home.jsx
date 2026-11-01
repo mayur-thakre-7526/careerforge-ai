@@ -7,18 +7,52 @@ const Home = () => {
   const { loading, generateReport, reports } = useInterview();
   const [jobDescription, setJobDescription] = useState("");
   const [selfDescription, setSelfDescription] = useState("");
+  const [selectedResume, setSelectedResume] = useState(null);
   const resumeInputRef = useRef();
 
   const navigate = useNavigate();
 
   const handleGenerateReport = async () => {
-    const resumeFile = resumeInputRef.current.files[0];
-    const data = await generateReport({
-      jobDescription,
-      selfDescription,
-      resumeFile,
-    });
-    navigate(`/interview/${data._id}`);
+    const resumeFile = resumeInputRef.current?.files?.[0];
+
+    // Validate job description
+    if (!jobDescription.trim()) {
+      alert("Please enter the job description.");
+      return;
+    }
+
+    // Validate resume or self-description
+    if (!resumeFile && !selfDescription.trim()) {
+      alert("Please upload your resume or enter a self-description.");
+      return;
+    }
+
+    try {
+      const data = await generateReport({
+        jobDescription,
+        selfDescription,
+        resumeFile,
+      });
+
+      // Validate API response
+      const report = data?.interviewReport;
+
+      if (!report?._id) {
+        console.error("Invalid API response:", data);
+        alert("Report was not generated successfully. Please try again.");
+        return;
+      }
+
+      // Navigate only after successful report generation
+      navigate(`/interview/${report._id}`);
+    } catch (error) {
+      console.error("Failed to generate interview report:", error);
+
+      alert(
+        error?.response?.data?.message ||
+          "Failed to generate your interview plan. Please try again.",
+      );
+    }
   };
 
   if (loading) {
@@ -130,17 +164,41 @@ const Home = () => {
                 <p className="dropzone__title">
                   Click to upload or drag &amp; drop
                 </p>
-                <p className="dropzone__subtitle">PDF or DOCX (Max 5MB)</p>
+                <p className="dropzone__subtitle">PDF only (Max 5MB)</p>
                 <input
                   ref={resumeInputRef}
                   hidden
                   type="file"
                   id="resume"
                   name="resume"
-                  accept=".pdf,.docx"
+                  accept=".pdf"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    setSelectedResume(file || null);
+                  }}
                 />
               </label>
             </div>
+
+            {/* Selected Resume */}
+            {selectedResume && (
+              <div className="selected-resume">
+                <span>📄 {selectedResume.name}</span>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedResume(null);
+
+                    if (resumeInputRef.current) {
+                      resumeInputRef.current.value = "";
+                    }
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
+            )}
 
             {/* OR Divider */}
             <div className="or-divider">

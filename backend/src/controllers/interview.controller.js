@@ -10,32 +10,84 @@ const interviewReportModel = require("../models/interviewReport.model.js");
  */
 
 async function generateInterViewReportController(req, res) {
-  const resumeContent = await new pdfParse.PDFParse(
-    Uint8Array.from(req.file.buffer),
-  ).getText();
-  const { selfDescription, jobDescription } = req.body;
+  try {
+    const { selfDescription, jobDescription } = req.body;
 
-  const interViewReportByAi = await generateInterviewReport({
-    resume: resumeContent.text,
-    selfDescription,
-    jobDescription,
-  });
+    if (!jobDescription?.trim()) {
+      return res.status(400).json({
+        message: "Job description is required.",
+      });
+    }
 
-  console.log("AI Report:", interViewReportByAi);
-  console.log("AI Title:", interViewReportByAi.title);
+    if (!req.file && !selfDescription?.trim()) {
+      return res.status(400).json({
+        message: "Please upload a resume or provide a self-description.",
+      });
+    }
 
-  const interviewReport = await interviewReportModel.create({
-    user: req.user.id,
-    resume: resumeContent.text,
-    selfDescription,
-    jobDescription,
-    ...interViewReportByAi,
-  });
+    let resumeText = "";
 
-  res.status(201).json({
-    message: "Interview report generated successfully.",
-    interviewReport,
-  });
+    if (req.file) {
+      // 1. Validate file type
+      if (req.file.mimetype !== "application/pdf") {
+        return res.status(400).json({
+          message: "Please upload a valid PDF resume.",
+        });
+      }
+
+      // 2. Validate file buffer
+      if (!req.file.buffer || req.file.buffer.length === 0) {
+        return res.status(400).json({
+          message: "Uploaded resume file is empty or invalid.",
+        });
+      }
+
+      // 3. Extract text from PDF
+      const pdfParser = new pdfParse.PDFParse({
+        data: new Uint8Array(req.file.buffer),
+      });
+
+      try {
+        const parsedPdf = await pdfParser.getText();
+        resumeText = parsedPdf.text || "";
+      } finally {
+        await pdfParser.destroy();
+      }
+
+      // 4. Validate extracted text
+      if (!resumeText.trim()) {
+        return res.status(400).json({
+          message:
+            "Could not extract text from the uploaded PDF. Please upload a text-based PDF.",
+        });
+      }
+    }
+
+    const interViewReportByAi = await generateInterviewReport({
+      resume: resumeText,
+      selfDescription,
+      jobDescription,
+    });
+
+    const interviewReport = await interviewReportModel.create({
+      user: req.user.id,
+      resume: resumeText,
+      selfDescription,
+      jobDescription,
+      ...interViewReportByAi,
+    });
+
+    return res.status(201).json({
+      message: "Interview report generated successfully.",
+      interviewReport,
+    });
+  } catch (error) {
+    console.error("Generate interview report error:", error);
+
+    return res.status(500).json({
+      message: "Failed to generate interview report.",
+    });
+  }
 }
 
 /**
@@ -84,7 +136,7 @@ async function getAllInterviewReportsController(req, res) {
 async function generateResumePdfController(req, res) {
   const { interviewReportId } = req.params;
 
-  const interviewReport = await interviewReportModel.findById({
+  const interviewReport = await interviewReportModel.findOne({
     _id: interviewReportId,
     user: req.user.id,
   });
