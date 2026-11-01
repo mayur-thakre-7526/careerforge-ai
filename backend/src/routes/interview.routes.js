@@ -13,7 +13,7 @@ const interviewRouter = express.Router();
 
 interviewRouter.post(
   "/",
-  authUser,
+  authMiddleware.authUser,
   upload.single("resume"),
   interviewController.generateInterViewReportController,
 );
