@@ -35,7 +35,7 @@ const Home = () => {
       });
 
       // Validate API response
-      const report = data?.interviewReport;
+      const report = data;
 
       if (!report?._id) {
         console.error("Invalid API response:", data);

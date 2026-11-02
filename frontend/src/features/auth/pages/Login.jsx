@@ -12,8 +12,13 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await handleLogin({ email, password });
-    navigate("/");
+
+    try {
+      await handleLogin({ email, password });
+      navigate("/");
+    } catch (error) {
+      alert(error.response?.data?.message || "Login failed. Please try again.");
+    }
   };
 
   if (loading) {

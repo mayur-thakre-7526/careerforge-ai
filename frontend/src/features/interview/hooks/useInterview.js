@@ -25,21 +25,33 @@ export const useInterview = () => {
     resumeFile,
   }) => {
     setLoading(true);
-    let response = null;
+
     try {
-      response = await generateInterviewReport({
+      const response = await generateInterviewReport({
         jobDescription,
         selfDescription,
         resumeFile,
       });
-      setReport(response.interviewReport);
+
+      const interviewReport = response?.interviewReport;
+
+      if (!interviewReport?._id) {
+        throw new Error("Invalid interview report response from server.");
+      }
+
+      setReport(interviewReport);
+
+      return interviewReport;
     } catch (error) {
-      console.log(error);
+      console.error(
+        "Generate interview report failed:",
+        error.response?.data || error.message || error,
+      );
+
+      throw error;
     } finally {
       setLoading(false);
     }
-
-    return response.interviewReport;
   };
 
   const getReportById = async (interviewId) => {

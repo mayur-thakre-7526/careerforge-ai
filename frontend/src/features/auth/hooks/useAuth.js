@@ -10,10 +10,21 @@ export const useAuth = () => {
 
   const handleLogin = async ({ email, password }) => {
     setLoading(true);
+
     try {
       const data = await login({ email, password });
+
+      if(!data?.user) {
+        throw new Error("Invalid login response from server")
+      }
+
       setUser(data.user);
-    } catch (err) {
+
+      return data;
+
+    } catch (error) {
+      setUser(null);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -21,10 +32,19 @@ export const useAuth = () => {
 
   const handleRegister = async ({ username, email, password }) => {
     setLoading(true);
+
     try {
       const data = await register({ username, email, password });
+
+      if (!data?.user) {
+      throw new Error("Invalid login response from server.");
+    }
+
       setUser(data.user);
+      return data;
     } catch (err) {
+      setUser(null);
+      throw err;
     } finally {
       setLoading(false);
     }
