@@ -1,21 +1,24 @@
 const { mongoose, Schema, mongo } = require("mongoose");
 
-const userSchema = new Schema({
-  username: {
-    type: String,
-    require: true,
-    unique: [true, "username already taken"],
+const userSchema = new Schema(
+  {
+    username: {
+      type: String,
+      required: [true, "Username is required."],
+      unique: [true, "username already taken"],
+    },
+    email: {
+      type: String,
+      required: [true, "Email is required."],
+      unique: [true, "Account already exists with this email address"],
+    },
+    password: {
+      type: String,
+      required: [true, "Password is required."],
+    },
   },
-  email: {
-    type: String,
-    require: true,
-    unique: [true, "Account already exists with this email address"],
-  },
-  password: {
-    type: String,
-    require: true,
-  },
-});
+  { timestamps: true },
+);
 
 const User = mongoose.model("User", userSchema);
 

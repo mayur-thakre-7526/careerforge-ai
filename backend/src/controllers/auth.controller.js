@@ -12,15 +12,18 @@ const tokenBlacklist = require("../models/blacklist.model.js");
 async function registerUserController(req, res) {
   const { username, email, password } = req.body;
 
+  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedUsername = username.trim().toLowerCase();
+
   try {
-    if (!username || !email || !password) {
+    if (!normalizedUsername || !normalizedEmail || !password) {
       return res
         .status(400)
         .json({ message: "Please provide all the required fields" });
     }
 
     const existingUser = await User.findOne({
-      $or: [{ username }, { email }],
+      $or: [{ normalizedUsername }, { normalizedEmail }],
     });
 
     if (existingUser) {
@@ -32,8 +35,8 @@ async function registerUserController(req, res) {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = new User({
-      username,
-      email,
+      username: normalizedUsername,
+      email: normalizedEmail,
       password: hashedPassword,
     });
 
@@ -43,7 +46,13 @@ async function registerUserController(req, res) {
       expiresIn: "1d",
     });
 
-    res.cookie("token", token);
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000,
+      path: "/",
+    });
 
     res.status(201).json({
       message: "User registered successfully",
@@ -69,13 +78,15 @@ async function registerUserController(req, res) {
 const loginUserController = async (req, res) => {
   const { email, password } = req.body;
 
-  if (!email || !password) {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  if (!normalizedEmail || !password) {
     return res
       .status(400)
       .json({ message: "Please provide all the required fields" });
   }
 
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ normalizedEmail });
 
   if (!user) {
     return res.status(400).json({ message: "Invalid user or password" });
@@ -93,7 +104,13 @@ const loginUserController = async (req, res) => {
     { expiresIn: "1d" },
   );
 
-  res.cookie("token", token);
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: false,
+    sameSite: "lax",
+    maxAge: 24 * 60 * 60 * 1000,
+    path: "/",
+  });
 
   res.status(200).json({
     message: "User loggedIn successfully",
@@ -113,7 +130,12 @@ const logoutUserController = async (req, res) => {
       await tokenBlacklist.create({ token });
     }
 
-    res.clearCookie("token");
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      path: "/",
+    });
 
     return res.status(200).json({
       message: "User logged out successfully",
@@ -134,10 +156,16 @@ const logoutUserController = async (req, res) => {
  */
 
 const getMeController = async (req, res) => {
-  const user = await User.findById(req.user.id);
+  const user = await User.findById(req.user.id).select("_id username email");
 
-  res.status(200).json({
-    message: "User details fetched successfully",
+  if (!user) {
+    return res.status(404).json({
+      message: "User not found.",
+    });
+  }
+
+  return res.status(200).json({
+    message: "User details fetched successfully.",
     user: {
       id: user._id,
       username: user.username,
