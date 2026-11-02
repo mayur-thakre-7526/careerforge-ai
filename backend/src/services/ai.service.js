@@ -1,7 +1,7 @@
-const { GoogleGenAI } = require("@google/genai");
+const { GoogleGenAI, Type } = require("@google/genai");
 const { z } = require("zod");
-const { zodToJsonSchema } = require("zod-to-json-schema");
 const puppeteer = require("puppeteer");
+const { zodToJsonSchema } = require("zod-to-json-schema");
 
 if (!process.env.GOOGLE_GENAI_API_KEY) {
   throw new Error("GOOGLE_GENAI_API_KEY is missing in backend/.env");
@@ -155,7 +155,108 @@ ${jobDescription}
     contents: prompt,
     config: {
       responseMimeType: "application/json",
-      responseSchema: zodToJsonSchema(interviewReportSchema),
+
+      responseSchema: {
+        type: Type.OBJECT,
+
+        properties: {
+          title: {
+            type: Type.STRING,
+            description: "The target job title",
+          },
+
+          matchScore: {
+            type: Type.NUMBER,
+            description: "Candidate's job match score between 0 and 100",
+          },
+
+          technicalQuestions: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                question: {
+                  type: Type.STRING,
+                },
+                intention: {
+                  type: Type.STRING,
+                },
+                answer: {
+                  type: Type.STRING,
+                },
+              },
+              required: ["question", "intention", "answer"],
+            },
+          },
+
+          behavioralQuestions: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                question: {
+                  type: Type.STRING,
+                },
+                intention: {
+                  type: Type.STRING,
+                },
+                answer: {
+                  type: Type.STRING,
+                },
+              },
+              required: ["question", "intention", "answer"],
+            },
+          },
+
+          skillGaps: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                skill: {
+                  type: Type.STRING,
+                },
+                severity: {
+                  type: Type.STRING,
+                  enum: ["low", "medium", "high"],
+                },
+              },
+              required: ["skill", "severity"],
+            },
+          },
+
+          preparationPlan: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                day: {
+                  type: Type.NUMBER,
+                },
+                focus: {
+                  type: Type.STRING,
+                },
+                tasks: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.STRING,
+                  },
+                },
+              },
+              required: ["day", "focus", "tasks"],
+            },
+          },
+        },
+
+        required: [
+          "title",
+          "matchScore",
+          "technicalQuestions",
+          "behavioralQuestions",
+          "skillGaps",
+          "preparationPlan",
+        ],
+      },
     },
   });
 
@@ -179,6 +280,8 @@ ${jobDescription}
       "Gemini response validation failed:",
       JSON.stringify(validationResult.error.issues, null, 2),
     );
+
+    console.error("Gemini raw response:", JSON.stringify(rawResponse, null, 2));
 
     throw new Error("Generated interview report has an invalid structure.");
   }
