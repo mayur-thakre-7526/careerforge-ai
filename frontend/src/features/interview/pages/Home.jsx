@@ -1,16 +1,20 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import "../style/home.scss";
 import { useInterview } from "../hooks/useInterview.js";
 import { useNavigate } from "react-router";
 
 const Home = () => {
-  const { loading, generateReport, reports } = useInterview();
+  const { loading, generateReport, reports, getReports } = useInterview();
   const [jobDescription, setJobDescription] = useState("");
   const [selfDescription, setSelfDescription] = useState("");
   const [selectedResume, setSelectedResume] = useState(null);
   const resumeInputRef = useRef();
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    getReports();
+  }, []);
 
   const handleGenerateReport = async () => {
     const resumeFile = resumeInputRef.current?.files?.[0];

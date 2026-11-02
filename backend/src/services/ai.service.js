@@ -3,6 +3,10 @@ const { z } = require("zod");
 const { zodToJsonSchema } = require("zod-to-json-schema");
 const puppeteer = require("puppeteer");
 
+if (!process.env.GOOGLE_GENAI_API_KEY) {
+  throw new Error("GOOGLE_GENAI_API_KEY is missing in backend/.env");
+}
+
 const ai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_GENAI_API_KEY,
 });
@@ -183,23 +187,33 @@ ${jobDescription}
 }
 
 async function generatePdfFromHtml(htmlContent) {
-  const browser = await puppeteer.launch();
-  const page = await browser.newPage();
-  await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+  let browser;
 
-  const pdfBuffer = await page.pdf({
-    format: "A4",
-    margin: {
-      top: "20mm",
-      bottom: "20mm",
-      left: "15mm",
-      right: "15mm",
-    },
-  });
+  try {
+    browser = await puppeteer.launch();
 
-  await browser.close();
+    const page = await browser.newPage();
 
-  return pdfBuffer;
+    await page.setContent(htmlContent, {
+      waitUntil: "networkidle0",
+      timeout: 30000,
+    });
+
+    return await page.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: {
+        top: "20mm",
+        bottom: "20mm",
+        left: "15mm",
+        right: "15mm",
+      },
+    });
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
+  }
 }
 
 async function generateResumePdf({ resume, selfDescription, jobDescription }) {
